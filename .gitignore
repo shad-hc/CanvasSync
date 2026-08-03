@@ -1,19 +1,26 @@
 # Dependencies
 node_modules/
 
-
 # Build outputs
-dist/ .next/ out/ build/
+dist/
+.next/
+out/
+build/
 
 # Environment — NEVER commit
-.env .env.local .env.production
-backend/.env frontend/.env frontend/.env.local
+.env 
+.env.local 
+.env.production
+backend/.env 
+frontend/.env 
+frontend/.env.local
 
 # Logs
 *.log logs/
 
 # TypeScript
-*.tsbuildinfo next-env.d.ts
+*.tsbuildinfo 
+next-env.d.ts
 
 # OS
 .DS_Store Thumbs.db

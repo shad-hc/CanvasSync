@@ -13,7 +13,7 @@ export const signAccessToken = (payload: Omit<JwtAccessPayload, 'type'>): string
   jwt.sign(
     { ...payload, type: 'access', jti: uuidv4() }, // jti enables per-token blacklisting
     env.JWT_ACCESS_SECRET,
-    { algorithm: ACCESS_ALGORITHM},
+    { algorithm: ACCESS_ALGORITHM, expiresIn : env.JWT_ACCESS_EXPIRES_IN},
   );
 
 export const verifyAccessToken = (token: string): JwtAccessPayload & { jti?: string; exp?: number } => {

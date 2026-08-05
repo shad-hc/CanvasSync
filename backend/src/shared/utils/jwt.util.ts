@@ -4,8 +4,8 @@ import { env } from '@config/env';
 import type { JwtAccessPayload, JwtRefreshPayload } from '@shared/types/domain.types';
 
 
-const ACCESS_ALGORITHM = 'HS256';
-const REFRESH_ALGORITHM = 'HS256';
+const ACCESS_ALGORITHM = 'HS256' as const;
+const REFRESH_ALGORITHM = 'HS256' as const;
 
 // ── Access Token 
 

@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum GlobalRole { 
+    ADMIN
+    USER 
+}
+enum MemberRole { 
+   OWNER 
+   EDITOR 
+   VIEWER 
+}
+enum InviteStatus { 
+  PENDING 
+  ACCEPTED 
+  DECLINED 
+  EXPIRED 
+}
+
+
+enum ElementType {
+  rectangle
+  ellipse
+  line
+  arrow
+  freehand
+  text
+  sticky
+  image
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  displayName  String
+  passwordHash String
+  avatarUrl    String?
+  role         GlobalRole @default(USER)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  ownedBoards     Board[]         @relation("BoardOwner")
+  memberships     BoardMember[]
+  refreshTokens   RefreshToken[]
+  sentInvites     BoardInvite[]   @relation("InviteSender")
+  receivedInvites BoardInvite[]   @relation("InviteRecipient")
+  favoriteBoards  FavoriteBoard[]
+  recentBoards    RecentBoard[]
+  elements        CanvasElement[]
+  
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  family     String
+  isRevoked  Boolean   @default(false)
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([family])
+  @@map("refresh_tokens")
+}
+
+model Board {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  thumbnailUrl String?
+  isPublic     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  ownerId      String
+  owner        User     @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  members   BoardMember[]
+  invites   BoardInvite[]
+  favorites FavoriteBoard[]
+  recents   RecentBoard[]
+  elements  CanvasElement[]
+  snapshots     BoardSnapshot[]
+
+
+  @@index([ownerId])
+  @@index([title])
+  @@index([createdAt(sort: Desc)])
+  @@map("boards")
+}
+
+
+model CanvasElement {
+  id         String      @id          // UUID assigned by client at creation
+  boardId    String
+  createdBy  String
+  type       ElementType
+  x          Float
+  y          Float
+  width      Float
+  height     Float
+  rotation   Float       @default(0)
+  layerIndex Int         @default(0)
+  visible    Boolean     @default(true)
+  locked     Boolean     @default(false)
+  data       Json                     // Full style/content payload
+  version    Int         @default(1)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  deletedAt  DateTime?               // null = active, non-null = deleted
+
+  board   Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  creator User  @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([boardId, deletedAt])
+  @@index([boardId, layerIndex])
+  @@map("canvas_elements")
+}
+
+
+model BoardSnapshot {
+  id           String   @id @default(uuid())
+  boardId      String
+  data         Json     // Serialized CanvasElement[] at snapshot time
+  elementCount Int
+  createdAt    DateTime @default(now())
+  board        Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId, createdAt(sort: Desc)])
+  @@map("board_snapshots")
+}
+
+model BoardMember {
+  id       String     @id @default(uuid())
+  role     MemberRole @default(VIEWER)
+  joinedAt DateTime   @default(now())
+  userId   String
+  boardId  String
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board    Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, boardId])
+  @@index([boardId])
+  @@map("board_members")
+}
+
+model BoardInvite {
+  id          String       @id @default(uuid())
+  role        MemberRole   @default(VIEWER)
+  status      InviteStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  boardId     String
+  senderId    String
+  recipientId String
+  board       Board        @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  sender      User         @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User         @relation("InviteRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, recipientId])
+  @@index([recipientId, status])
+  @@index([boardId])
+  @@map("board_invites")
+}
+
+model FavoriteBoard {
+  id        String   @id @default(uuid())
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  userId    String
+  boardId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, boardId])
+  @@index([userId, order])
+  @@map("favorite_boards")
+}
+
+model RecentBoard {
+  id           String   @id @default(uuid())
+  lastOpenedAt DateTime @default(now())
+  userId       String
+  boardId      String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board        Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, boardId])
+  @@index([userId, lastOpenedAt(sort: Desc)])
+  @@map("recent_boards")
+}
+

@@ -1,5 +1,6 @@
 import { PrismaClient, User, RefreshToken } from '@prisma/client';
 
+
 export class AuthRepository {
   constructor(private readonly db: PrismaClient) {}
 

@@ -39,23 +39,14 @@ export interface PublicUser {
   createdAt: Date;
 }
 
-/**
- * AuthService — orchestrates all authentication business logic.
- *
- * The service layer sits between controllers (HTTP concerns) and repositories
- * (data concerns). It owns the "what" and "why" of auth — the rules, the
- * security decisions, the error conditions.
- *
- * Injecting AuthRepository and TokenBlacklist (rather than importing singletons)
- * keeps this class fully testable without touching the database or Redis.
- */
+
 export class AuthService {
   constructor(
     private readonly authRepo: AuthRepository,
     private readonly blacklist: TokenBlacklist,
   ) {}
 
-  // ── Register ──────────────────────────────────────────────────────────────
+  // ── Register
 
   async register(dto: RegisterDto): Promise<AuthResult> {
     const existing = await this.authRepo.findUserByEmail(dto.email);
@@ -89,12 +80,7 @@ export class AuthService {
   async login(dto: LoginDto): Promise<AuthResult> {
     const user = await this.authRepo.findUserByEmail(dto.email);
 
-    /**
-     * Always run verifyPassword even if the user doesn't exist.
-     * This prevents timing attacks: an attacker measuring response time
-     * could distinguish "no user found" (fast) from "wrong password" (slow bcrypt).
-     * By always running bcrypt, both cases take ~250ms.
-     */
+   
     const dummyHash =
       '$2a$12$invalidhashthatiswrongenoughtofail00000000000000000000000';
     const passwordValid = await verifyPassword(
@@ -116,7 +102,7 @@ export class AuthService {
     return { user: this.toPublicUser(user), tokens };
   }
 
-  // ── Refresh ───────────────────────────────────────────────────────────────
+  // ── Refresh 
 
   async refresh(dto: RefreshDto): Promise<TokenPair> {
     let payload;
@@ -136,18 +122,7 @@ export class AuthService {
       throw new UnauthorizedError('Refresh token not found', 'INVALID_REFRESH_TOKEN');
     }
 
-    /**
-     * Token reuse detection — the core of rotation security.
-     *
-     * If the token is already revoked but someone is presenting it, there are
-     * two scenarios:
-     * 1. The legitimate user is replaying an old token (bug/network retry)
-     * 2. An attacker obtained a rotated-out token (theft)
-     *
-     * We can't distinguish them, so we assume the worst: revoke the entire
-     * family. The legitimate user will need to log in again. This is the
-     * correct security posture — a brief inconvenience vs a compromised account.
-     */
+   
     if (tokenRecord.isRevoked) {
       logger.warn('Refresh token reuse detected — revoking family', {
         family: tokenRecord.family,
@@ -195,7 +170,7 @@ export class AuthService {
     return { accessToken, refreshToken: newRefreshToken };
   }
 
-  // ── Logout ────────────────────────────────────────────────────────────────
+  // ── Logout
 
   async logout(dto: LogoutDto, accessToken: string): Promise<void> {
     let refreshPayload;
@@ -246,12 +221,7 @@ export class AuthService {
     return this.toPublicUser(user);
   }
 
-  // ── Private helpers ───────────────────────────────────────────────────────
-
-  /**
-   * Issues an access + refresh token pair and persists the refresh token.
-   * Called after both registration and login.
-   */
+  // ── Private helpers
   private async issueTokenPair(user: User, family: string): Promise<TokenPair> {
     const tokenId = uuidv4();
 

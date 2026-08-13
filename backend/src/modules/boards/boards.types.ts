@@ -26,37 +26,11 @@ export interface BoardSummary {
   };
   memberCount: number;
   userRole: MemberRole;
-  isFavorite: boolean;
   lastOpenedAt: string | null;
 }
 
 export interface BoardDetail extends BoardSummary {
   members: BoardMemberSummary[];
-  pendingInviteCount: number;
-}
-
-export interface BoardInviteSummary {
-  id: string;
-  role: MemberRole;
-  status: InviteStatus;
-  expiresAt: string;
-  createdAt: string;
-  board: {
-    id: string;
-    title: string;
-    thumbnailUrl: string | null;
-  };
-  sender: {
-    id: string;
-    displayName: string;
-    avatarUrl: string | null;
-  };
-  recipient: {
-    id: string;
-    displayName: string;
-    email: string;
-    avatarUrl: string | null;
-  };
 }
 
 export interface PaginatedBoards {

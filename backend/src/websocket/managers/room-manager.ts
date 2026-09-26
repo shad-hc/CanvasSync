@@ -3,7 +3,7 @@ import type { ConnectionManager } from './connection-manager.ts';
 import type { PubSubSubscriber } from '../../redis/pubsub-subscriber.ts';
 
 const logger = createLogger('RoomManager');
-
+ 
 export class RoomManager {
   private rooms = new Map<string, Set<string>>();
 
